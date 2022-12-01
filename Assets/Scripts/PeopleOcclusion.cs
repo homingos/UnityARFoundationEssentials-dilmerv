@@ -8,6 +8,7 @@ using UnityEngine.XR.ARSubsystems;
 using UnityEngine.UI;
 
 [RequireComponent(typeof(ARCameraManager))]
+[RequireComponent(typeof(AROcclusionManager))]
 public class PeopleOcclusion : MonoBehaviour
 {
     [SerializeField] 
@@ -15,7 +16,10 @@ public class PeopleOcclusion : MonoBehaviour
     
     [SerializeField] 
     private ARHumanBodyManager m_humanBodyManager = null;
-    
+
+    [SerializeField]
+    private AROcclusionManager m_occlusionManager = null;
+
     [SerializeField] 
     private ARCameraManager m_cameraManager = null;
     
@@ -86,8 +90,8 @@ public class PeopleOcclusion : MonoBehaviour
                 m_material.SetInt("_ONWIDE", 0);
             }
 
-            m_material.SetTexture("_OcclusionDepth", m_humanBodyManager.humanDepthTexture);
-            m_material.SetTexture("_OcclusionStencil", m_humanBodyManager.humanStencilTexture);
+            m_material.SetTexture("_OcclusionDepth", m_occlusionManager.humanDepthTexture);
+            m_material.SetTexture("_OcclusionStencil", m_occlusionManager.humanStencilTexture);
             Graphics.Blit(source, destination, m_material);
         }
         else
@@ -106,21 +110,21 @@ public class PeopleOcclusion : MonoBehaviour
 
     private bool PeopleOcclusionSupported()
     {
-        return m_humanBodyManager.subsystem != null && m_humanBodyManager.humanDepthTexture != null && m_humanBodyManager.humanStencilTexture != null;
+        return m_humanBodyManager.subsystem != null && m_occlusionManager.humanDepthTexture != null && m_occlusionManager.humanStencilTexture != null;
     }
 
     private void RefreshCameraFeedTexture()
     {
-        XRCameraImage cameraImage;
-        m_cameraManager.TryGetLatestImage(out cameraImage);
+        XRCpuImage cameraImage;
+        m_cameraManager.TryAcquireLatestCpuImage(out cameraImage);
 
         if (m_cameraFeedTexture == null || m_cameraFeedTexture.width != cameraImage.width || m_cameraFeedTexture.height != cameraImage.height)
         {
             m_cameraFeedTexture = new Texture2D(cameraImage.width, cameraImage.height, TextureFormat.RGBA32, false);
         }
 
-        CameraImageTransformation imageTransformation = Input.deviceOrientation == DeviceOrientation.LandscapeRight ? CameraImageTransformation.MirrorY : CameraImageTransformation.MirrorX;
-        XRCameraImageConversionParams conversionParams = new XRCameraImageConversionParams(cameraImage, TextureFormat.RGBA32, imageTransformation);
+        XRCpuImage.Transformation imageTransformation = Input.deviceOrientation == DeviceOrientation.LandscapeRight ? XRCpuImage.Transformation.MirrorY : XRCpuImage.Transformation.MirrorX;
+        XRCpuImage.ConversionParams conversionParams = new XRCpuImage.ConversionParams(cameraImage, TextureFormat.RGBA32, imageTransformation);
 
         NativeArray<byte> rawTextureData = m_cameraFeedTexture.GetRawTextureData<byte>();
 
